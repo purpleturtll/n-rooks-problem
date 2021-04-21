@@ -102,11 +102,22 @@ function animatePieces() {
     }
 }
 
+function onPress() {
+    fetch("http://localhost:8080/solver", {
+        method: "POST",
+        body: JSON.stringify(board_state),
+        headers: {
+            "Content-Type": "application/json",
+        },
+    })
+        .then((response) => response.json())
+        .then((data) => console.log(data));
+}
+
 function setup() {
     createCanvas(
         tile_size * board_size + spacing * (board_size + 1),
-        tile_size * board_size + spacing * (board_size + 1),
-        "WEBGL"
+        tile_size * board_size + spacing * (board_size + 1)
     );
     //               [col][row]
     rooks.push(new Rook(1, 2));
@@ -123,6 +134,10 @@ function setup() {
         }
     }
     console.log(board_state);
+
+    button = createButton("click me");
+    button.position(0, 0);
+    button.mousePressed(onPress);
 }
 
 function draw() {
