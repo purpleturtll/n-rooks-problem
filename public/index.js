@@ -1,5 +1,5 @@
 let tile_size = 64;
-let board_size = 8;
+let board_size = 3;
 let spacing = 0;
 let rook_img;
 let rooks = [];
@@ -104,11 +104,7 @@ function animatePieces() {
 
 function onPress() {
     fetch("http://localhost:8080/solver", {
-        method: "POST",
-        body: JSON.stringify(board_state),
-        headers: {
-            "Content-Type": "application/json",
-        },
+        method: "GET",
     })
         .then((response) => response.json())
         .then((data) => console.log(data));
