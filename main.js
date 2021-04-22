@@ -5,75 +5,59 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
-app.get("/solver", (req, res) => {
-    let R = [
-        ["00", "01", "02"],
-        ["10", "11", "12"],
-        ["20", "21", "22"],
-    ];
+Array.prototype.pairs = function (arr) {
+    return this.map((v, i) => this.slice(i + 1).map((w) => [v, w])).flat();
+};
 
-    let solver = new Logic.Solver();
+app.get("/new_solver/:n", (req, res) => {
+    solver = new Logic.Solver();
+
+    let R = [];
+
+    for (let i = 0; i < req.params.n; i++) {
+        R.push([]);
+        for (let j = 0; j < req.params.n; j++) {
+            R[i].push("R" + i.toString(16) + j.toString(16));
+        }
+    }
+
+    // T = po transpozycji
+    let T = _.zip(...R);
 
     //przynajmnijej jedna wieża w row i col
     _.each(
         [
             // Przynajmniej jeden w rzędzie
-            ["00", "01", "02"],
-            [R[1][0], R[1][1], R[1][2]],
-            [R[2][0], R[2][1], R[2][2]],
+            ...R,
             //Przynajmniej jeden w kolumnach
-            [R[0][0], R[1][0], R[2][0]],
-            [R[0][1], R[1][1], R[2][1]],
-            [R[0][2], R[1][2], R[2][2]],
+            ...T,
         ],
         (terms) => {
-            console.log(Logic.or("00", "01", "02"));
             solver.require(Logic.or(terms));
         }
     );
 
     //nie więcej niż jedna wieża w col i row
-
     _.each(
         [
             // Maksymalnie jedna w rzędzie
-            // rząd 0
-            [R[0][0], R[0][1]],
-            [R[0][1], R[0][2]],
-            // rząd 1
-            [R[1][0], R[1][1]],
-            [R[1][1], R[1][2]],
-            // rząd 2
-            [R[2][0], R[2][1]],
-            [R[2][1], R[2][2]],
+            ...R.map((v) => v.pairs()).flat(),
             // Maksymalnie jedna w kolumnie
-            // kolumna 0
-            [R[0][0], R[1][0]],
-            [R[1][0], R[2][0]],
-            // kolumna 1
-            [R[0][1], R[1][1]],
-            [R[1][1], R[2][1]],
-            // kolumna 2
-            [R[0][2], R[1][2]],
-            [R[1][2], R[2][2]],
+            ...T.map((v) => v.pairs()).flat(),
         ],
         (terms) => {
-            solver.require(
-                Logic.equalBits(
-                    Logic.not(Logic.and(terms)),
-                    Logic.constantBits(1)
-                )
-            );
+            solver.require(Logic.not(Logic.and(terms)));
         }
     );
+});
 
-    let S = solver.solve();
-    let response = [
-        [s.evaluate("00"), s.evaluate("01"), s.evaluate("02")],
-        [s.evaluate("10"), s.evaluate("11"), s.evaluate("12")],
-        [s.evaluate("20"), s.evaluate("21"), s.evaluate("22")],
-    ];
-    res.json(JSON.stringify(response));
+app.get("/solution", (req, res) => {
+    let solutions = [];
+    while ((solution = solver.solve())) {
+        solutions.push(solution.getTrueVars());
+        solver.forbid(solution.getFormula());
+    }
+    res.json(JSON.stringify(solutions));
 });
 
 app.listen(8080);

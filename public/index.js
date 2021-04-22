@@ -4,7 +4,9 @@ let spacing = 0;
 let rook_img;
 let rooks = [];
 let speed = 0.1;
-let board_state = [];
+let solutions = [];
+let animate = true;
+let auto = false;
 
 function getRandomInt(min, max) {
     min = Math.ceil(min);
@@ -12,20 +14,22 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min) + min);
 }
 
-function Rook(x, y) {
-    this.index_pos = { x: x, y: y };
-    this.pos = {
-        x: Math.round(
-            spacing * (this.index_pos.x + 1) + tile_size * this.index_pos.x
-        ),
-        y: Math.round(
-            spacing * (this.index_pos.y + 1) + tile_size * this.index_pos.y
-        ),
-    };
-    this.index_destination = { x: this.index_pos.x, y: this.index_pos.y };
-    this.destination = { x: this.pos.x, y: this.pos.y };
+class Rook {
+    constructor(x, y) {
+        this.index_pos = { x: x, y: y };
+        this.pos = {
+            x: Math.round(
+                spacing * (this.index_pos.x + 1) + tile_size * this.index_pos.x
+            ),
+            y: Math.round(
+                spacing * (this.index_pos.y + 1) + tile_size * this.index_pos.y
+            ),
+        };
+        this.index_destination = { x: this.index_pos.x, y: this.index_pos.y };
+        this.destination = { x: this.pos.x, y: this.pos.y };
+    }
 
-    Rook.prototype.set_destination = (x, y) => {
+    set_destination = (x, y) => {
         this.index_destination = { x: x, y: y };
         this.destination = {
             x: Math.round(
@@ -39,7 +43,7 @@ function Rook(x, y) {
         };
     };
 
-    Rook.prototype.animate = () => {
+    animate = () => {
         if (Math.round(this.pos.x) != Math.round(this.destination.x)) {
             this.pos.x += (this.destination.x - this.pos.x) * speed;
         } else {
@@ -51,7 +55,7 @@ function Rook(x, y) {
         this.index_pos.y = Math.round(this.pos.y / tile_size);
     };
 
-    Rook.prototype.atDestination = () => {
+    atDestination = () => {
         return (
             Math.round(this.pos.x) == Math.round(this.destination.x) &&
             Math.round(this.pos.y) == Math.round(this.destination.y)
@@ -102,12 +106,43 @@ function animatePieces() {
     }
 }
 
-function onPress() {
-    fetch("http://localhost:8080/solver", {
-        method: "GET",
-    })
-        .then((response) => response.json())
-        .then((data) => console.log(data));
+function createSolver() {
+    fetch("http://localhost:8080/new_solver/" + board_size.toString());
+    fetch("http://localhost:8080/solution")
+        .then((res) => res.json())
+        .then((data) => {
+            solutions = JSON.parse(data);
+        });
+}
+
+function onChangeN() {
+    board_size = parseInt(this.value()) <= 0xf ? this.value() : 8;
+    resizeCanvas(
+        tile_size * board_size + spacing * (board_size + 1),
+        tile_size * board_size + spacing * (board_size + 1)
+    );
+    rooks = [];
+    solutions = [];
+    for (let i = 0; i < board_size; i++) {
+        rooks.push(new Rook(i, i));
+    }
+}
+
+function nextSolution() {
+    if (
+        solutions.length > 0 &&
+        rooks.filter((r) => r.atDestination()).length == rooks.length
+    ) {
+        for (let i = 0; i < rooks.length; i++) {
+            if (rooks[i].atDestination()) {
+                rooks[i].set_destination(
+                    parseInt("0x" + solutions[0][i][2]),
+                    parseInt("0x" + solutions[0][i][1])
+                );
+            }
+        }
+        solutions.shift();
+    }
 }
 
 function setup() {
@@ -115,38 +150,40 @@ function setup() {
         tile_size * board_size + spacing * (board_size + 1),
         tile_size * board_size + spacing * (board_size + 1)
     );
-    //               [col][row]
-    rooks.push(new Rook(1, 2));
 
-    const t = rooks.map((v) => v.index_pos);
     for (let i = 0; i < board_size; i++) {
-        board_state.push([]);
-        for (let j = 0; j < board_size; j++) {
-            if (t.find((v, index) => v.x == j && v.y == i) == undefined) {
-                board_state[i].push(0);
-            } else {
-                board_state[i].push(1);
-            }
-        }
+        rooks.push(new Rook(i, i));
     }
-    console.log(board_state);
 
-    button = createButton("click me");
-    button.position(0, 0);
-    button.mousePressed(onPress);
+    let inp = createInput(board_size.toString());
+    inp.position(0, 0);
+    inp.size(50);
+    inp.input(onChangeN);
+
+    let button = createButton("Start solver");
+    button.position(0, 25);
+    button.mousePressed(createSolver);
+
+    let btn = createButton("next");
+    btn.position(0, 50);
+    btn.mousePressed(() => {
+        auto = false;
+        nextSolution();
+    });
+
+    let autoBtn = createButton("auto");
+    autoBtn.position(0, 75);
+    autoBtn.mousePressed(() => (auto = !auto));
 }
 
 function draw() {
     background(220);
-    animatePieces();
+    if (auto) {
+        nextSolution();
+    }
+    if (animate) {
+        animatePieces();
+    }
     draw_board();
     draw_pieces();
-    for (let i = 0; i < rooks.length; i++) {
-        if (rooks[i].atDestination()) {
-            rooks[i].set_destination(
-                getRandomInt(0, board_size),
-                getRandomInt(0, board_size)
-            );
-        }
-    }
 }
