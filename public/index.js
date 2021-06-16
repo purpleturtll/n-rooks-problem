@@ -90,6 +90,23 @@ function draw_board() {
             );
         }
     }
+
+    textSize(16);
+    fill(0, 0, 0);
+    for (let i = 0; i < board_size; i++) {
+        text(
+            i.toString(16).toUpperCase(),
+            spacing * (i + 1) + tile_size * i + 3,
+            60
+        );
+    }
+    for (let i = 1; i < board_size; i++) {
+        text(
+            i.toString(16).toUpperCase(),
+            3,
+            spacing * (i + 2) + tile_size * (i + 1) - 4
+        );
+    }
 }
 
 function draw_pieces() {
@@ -123,6 +140,7 @@ function onChangeN() {
     );
     rooks = [];
     solutions = [];
+    auto = false;
     for (let i = 0; i < board_size; i++) {
         rooks.push(new Rook(i, i));
     }
@@ -160,7 +178,7 @@ function setup() {
     inp.size(50);
     inp.input(onChangeN);
 
-    let button = createButton("Start solver");
+    let button = createButton("Get solutions");
     button.position(0, 25);
     button.mousePressed(createSolver);
 

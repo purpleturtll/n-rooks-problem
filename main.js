@@ -5,6 +5,8 @@ const app = express();
 app.use(express.json());
 app.use(express.static("public"));
 
+let solver = new Logic.Solver();
+
 Array.prototype.pairs = function (arr) {
     return this.map((v, i) => this.slice(i + 1).map((w) => [v, w])).flat();
 };
@@ -49,6 +51,7 @@ app.get("/new_solver/:n", (req, res) => {
             solver.require(Logic.not(Logic.and(terms)));
         }
     );
+    console.log("Setup completed for N =", req.params.n);
 });
 
 app.get("/solution", (req, res) => {
@@ -57,6 +60,7 @@ app.get("/solution", (req, res) => {
         solutions.push(solution.getTrueVars());
         solver.forbid(solution.getFormula());
     }
+    console.log("Solutions sent.");
     res.json(JSON.stringify(solutions));
 });
 
